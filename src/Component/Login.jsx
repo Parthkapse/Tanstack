@@ -1,41 +1,43 @@
+
 import React, { useState } from "react";
-import {loginUser} from "../services/api"
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { loginUser } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [username, setUsername]=useState("");
-  const [password, setPassword]=useState("");
-  const [error, setError]=useState("");
-  const [loading, setLoading]=useState(false);
-  const navigate=useNavigate()
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
+  const mutation = useMutation({
+    mutationFn: loginUser,
+    onSuccess: (data) => {
+      console.log(data)
 
-    try {
-      const data = await loginUser({ username, password });
-      localStorage.setItem("userData", JSON.stringify(data));
-      navigate("/dashboard")
+      localStorage.setItem("Token", JSON.stringify(data.accessToken));
+      queryClient.invalidateQueries(["user"]); 
       alert("Login Successful!");
+      navigate("/dashboard");
+    },
+    onError: () => {
+      
+    },
+  });
 
-    
-    } catch (error) {
-      setError("Invalid username or password!");
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = (event) => {
+    event.preventDefault();
+    mutation.mutate({ username, password });
   };
 
   return (
     <div>
       <h1>Login</h1>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {mutation.isError && <p style={{ color: "red" }}>Invalid username or password!</p>}
 
       <form onSubmit={handleLogin}>
         <div>
-          <label>Username:</label>
+          <label>Username :  </label>
           <input
             type="text"
             value={username}
@@ -45,7 +47,7 @@ const Login = () => {
         </div>
         <br />
         <div>
-          <label>Password:</label>
+          <label>Password : </label>
           <input
             type="password"
             value={password}
@@ -54,8 +56,8 @@ const Login = () => {
           />
         </div>
         <br />
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
+        <button type="submit" disabled={mutation.isLoading}>
+          {mutation.isLoading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>
